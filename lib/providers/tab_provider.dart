@@ -77,6 +77,10 @@ class TabProvider extends ChangeNotifier {
             }
             // Inject media event hooks so notification bar controls work
             await tab.controller?.runJavaScript(_mediaHookJs);
+            // Inject YouTube enhancements if on YouTube
+            if (url.contains('youtube.com') || url.contains('youtu.be')) {
+              await tab.controller?.runJavaScript(_youtubeEnhancementsJs);
+            }
             notifyListeners();
           },
           onNavigationRequest: (request) {
@@ -208,6 +212,92 @@ class TabProvider extends ChangeNotifier {
       });
     });
   }).observe(document.body||document.documentElement,{childList:true,subtree:true});
+})();
+''';
+
+  // YouTube-specific JavaScript enhancements
+  static const _youtubeEnhancementsJs = r'''
+(function() {
+  if (window._wbYTHooked) return;
+  window._wbYTHooked = true;
+
+  // ── 1. Auto-skip ads ──────────────────────────────────────────────────────
+  function skipAds() {
+    // Click "Skip Ads" button when it appears
+    var skipBtn = document.querySelector('.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern');
+    if (skipBtn) { skipBtn.click(); return; }
+    // If unskippable ad is playing: mute, set currentTime to end
+    var adBadge = document.querySelector('.ytp-ad-badge, .ad-showing');
+    if (adBadge) {
+      var video = document.querySelector('video');
+      if (video && !isNaN(video.duration) && video.duration > 0) {
+        video.currentTime = video.duration;
+        video.muted = false;
+      }
+    }
+  }
+
+  // ── 2. Remove ad overlay elements ────────────────────────────────────────
+  function removeAdOverlays() {
+    var selectors = [
+      '.ytp-ad-overlay-container',
+      '.ytp-ad-text-overlay',
+      '.ytp-ad-image-overlay',
+      '#player-ads',
+      '#masthead-ad',
+      '.ytd-banner-promo-renderer',
+      'ytd-banner-promo-renderer',
+      'ytd-statement-banner-renderer',
+      '.ytd-ad-slot-renderer',
+      'ytd-ad-slot-renderer',
+      '#panels ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]',
+      'ytd-merch-shelf-renderer',
+      'ytd-ad-break-service-renderer',
+      '.ytp-ce-element',      // card overlay ads
+      '.ytp-suggested-action', // suggested action ads
+    ];
+    selectors.forEach(function(s) {
+      document.querySelectorAll(s).forEach(function(el) {
+        el.remove();
+      });
+    });
+  }
+
+  // ── 3. Keep background audio alive (disable visibility-based pause) ───────
+  Object.defineProperty(document, 'hidden', { get: function() { return false; } });
+  Object.defineProperty(document, 'visibilityState', { get: function() { return 'visible'; } });
+  document.dispatchEvent(new Event('visibilitychange'));
+
+  // ── 4. Enable 1080p / best quality preference ─────────────────────────────
+  // Store preference so YouTube's own quality selector picks it up
+  try {
+    var qs = window.yt && window.yt.config_ && window.yt.config_.QUALITY_DEFAULTS;
+    if (!qs) {
+      localStorage.setItem('yt-player-quality', JSON.stringify({data:{quality:1080}}));
+    }
+  } catch(e) {}
+
+  // ── 5. Run loop ───────────────────────────────────────────────────────────
+  var _interval = setInterval(function() {
+    skipAds();
+    removeAdOverlays();
+  }, 500);
+
+  // Stop after 30s on stable pages to save CPU
+  setTimeout(function() {
+    clearInterval(_interval);
+    // Slower sweep after that
+    setInterval(function() { skipAds(); removeAdOverlays(); }, 3000);
+  }, 30000);
+
+  // Also run on navigation (YouTube is a SPA)
+  var _lastUrl = location.href;
+  new MutationObserver(function() {
+    if (location.href !== _lastUrl) {
+      _lastUrl = location.href;
+      setTimeout(function() { skipAds(); removeAdOverlays(); }, 800);
+    }
+  }).observe(document.body || document.documentElement, {childList:true, subtree:true});
 })();
 ''';
 

@@ -33,55 +33,64 @@ class BrowserBottomBar extends StatelessWidget {
         child: SizedBox(
           height: 52,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavBtn(
-                icon: Icons.arrow_back_ios_new_rounded,
-                onTap: () => tabProvider.goBack(),
-                tooltip: 'Back',
+              Expanded(
+                child: _NavBtn(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onTap: () => tabProvider.goBack(),
+                  tooltip: 'Back',
+                ),
               ),
-              _NavBtn(
-                icon: Icons.arrow_forward_ios_rounded,
-                onTap: () => tabProvider.goForward(),
-                tooltip: 'Forward',
+              Expanded(
+                child: _NavBtn(
+                  icon: Icons.arrow_forward_ios_rounded,
+                  onTap: () => tabProvider.goForward(),
+                  tooltip: 'Forward',
+                ),
               ),
-              _NavBtn(
-                icon: isBookmarked
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: isBookmarked ? theme.colorScheme.primary : null,
-                onTap: () {
-                  if (tab == null || tab.url == 'about:blank') return;
-                  if (isBookmarked) {
-                    bookmarkProvider.remove(tab.url);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Bookmark removed'),
-                        duration: Duration(seconds: 2),
+              Expanded(
+                child: _NavBtn(
+                  icon: isBookmarked
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  color: isBookmarked ? theme.colorScheme.primary : null,
+                  onTap: () {
+                    if (tab == null || tab.url == 'about:blank') return;
+                    if (isBookmarked) {
+                      bookmarkProvider.remove(tab.url);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Bookmark removed'),
+                          duration: Duration(seconds: 2),
                       ),
                     );
-                  } else {
-                    bookmarkProvider.add(tab.title, tab.url);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Bookmark added'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-                tooltip: isBookmarked ? 'Remove bookmark' : 'Add bookmark',
+                    } else {
+                      bookmarkProvider.add(tab.title, tab.url);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Bookmark added'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  tooltip: isBookmarked ? 'Remove bookmark' : 'Add bookmark',
+                ),
               ),
-              _TabCountButton(
-                count: tabProvider.tabCount,
-                onTap: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const TabsScreen())),
+              Expanded(
+                child: _TabCountButton(
+                  count: tabProvider.tabCount,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TabsScreen()),
+                  ),
+                ),
               ),
-              _NavBtn(
-                icon: Icons.more_vert_rounded,
-                onTap: () => _showMenu(context, tabProvider),
-                tooltip: 'More',
+              Expanded(
+                child: _NavBtn(
+                  icon: Icons.more_vert_rounded,
+                  onTap: () => _showMenu(context, tabProvider),
+                  tooltip: 'More',
+                ),
               ),
             ],
           ),
@@ -93,6 +102,7 @@ class BrowserBottomBar extends StatelessWidget {
   void _showMenu(BuildContext context, TabProvider tabProvider) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -197,11 +207,15 @@ class _BrowserMenu extends StatelessWidget {
     final hasPage = currentUrl.isNotEmpty && currentUrl != 'about:blank';
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Container(
               width: 40,
               height: 4,
@@ -310,6 +324,7 @@ class _BrowserMenu extends StatelessWidget {
               },
             ),
           ],
+        ),
         ),
       ),
     );
