@@ -52,6 +52,18 @@ class _BrowserScreenState extends State<BrowserScreen> {
         await context.read<TabProvider>().goBack();
       } else if (cmd == 'next') {
         await context.read<TabProvider>().goForward();
+      } else if (cmd == 'mute') {
+        await tab!.controller!.runJavaScript(
+          'document.querySelectorAll("video,audio").forEach(function(v){v.muted=true;});',
+        );
+      } else if (cmd == 'unmute') {
+        await tab!.controller!.runJavaScript(
+          'document.querySelectorAll("video,audio").forEach(function(v){v.muted=false;});',
+        );
+      } else if (cmd == 'autoplay_on') {
+        context.read<TabProvider>().setAutoplay(true);
+      } else if (cmd == 'autoplay_off') {
+        context.read<TabProvider>().setAutoplay(false);
       } else if (cmd.startsWith('seek:')) {
         final secs = int.tryParse(cmd.substring(5)) ?? 0;
         await context.read<TabProvider>().seekActiveMedia(secs);

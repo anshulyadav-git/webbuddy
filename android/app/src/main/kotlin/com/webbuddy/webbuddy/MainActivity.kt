@@ -30,8 +30,10 @@ class MainActivity : FlutterActivity() {
     private val ACTION_STOP      = "com.webbuddy.webbuddy.MEDIA_STOP"
     private val ACTION_SEEK_BACK  = "com.webbuddy.webbuddy.MEDIA_SEEK_BACK"
     private val ACTION_SEEK_FWD   = "com.webbuddy.webbuddy.MEDIA_SEEK_FWD"
-    private val ACTION_PREV       = "com.webbuddy.webbuddy.MEDIA_PREV"
-    private val ACTION_NEXT       = "com.webbuddy.webbuddy.MEDIA_NEXT"
+    private val ACTION_PREV             = "com.webbuddy.webbuddy.MEDIA_PREV"
+    private val ACTION_NEXT             = "com.webbuddy.webbuddy.MEDIA_NEXT"
+    private val ACTION_MUTE             = "com.webbuddy.webbuddy.MEDIA_MUTE"
+    private val ACTION_AUTOPLAY_TOGGLE  = "com.webbuddy.webbuddy.MEDIA_AUTOPLAY_TOGGLE"
 
     private var pipEventSink: EventChannel.EventSink? = null
     private var mediaCtrlSink: EventChannel.EventSink? = null
@@ -39,6 +41,8 @@ class MainActivity : FlutterActivity() {
     private var mediaPlaying  = false
     private var mediaPosition = 0   // seconds
     private var mediaDuration = 0   // seconds
+    private var mediaIsMuted  = false
+    private var mediaAutoplay = true
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,8 +63,18 @@ class MainActivity : FlutterActivity() {
                 ACTION_STOP      -> { mediaPlaying = false; dismissMediaNotification(); mediaCtrlSink?.success("stop") }
                 ACTION_SEEK_BACK -> { mediaCtrlSink?.success("seek:-10") }
                 ACTION_SEEK_FWD  -> { mediaCtrlSink?.success("seek:10") }
-                ACTION_PREV      -> { mediaCtrlSink?.success("prev") }
-                ACTION_NEXT      -> { mediaCtrlSink?.success("next") }
+                ACTION_PREV            -> { mediaCtrlSink?.success("prev") }
+                ACTION_NEXT            -> { mediaCtrlSink?.success("next") }
+                ACTION_MUTE            -> {
+                    mediaIsMuted = !mediaIsMuted
+                    showMediaNotification()
+                    mediaCtrlSink?.success(if (mediaIsMuted) "mute" else "unmute")
+                }
+                ACTION_AUTOPLAY_TOGGLE -> {
+                    mediaAutoplay = !mediaAutoplay
+                    showMediaNotification()
+                    mediaCtrlSink?.success(if (mediaAutoplay) "autoplay_on" else "autoplay_off")
+                }
             }
         }
     }
@@ -74,6 +88,7 @@ class MainActivity : FlutterActivity() {
             addAction(ACTION_PLAY); addAction(ACTION_PAUSE); addAction(ACTION_STOP)
             addAction(ACTION_SEEK_BACK); addAction(ACTION_SEEK_FWD)
             addAction(ACTION_PREV); addAction(ACTION_NEXT)
+            addAction(ACTION_MUTE); addAction(ACTION_AUTOPLAY_TOGGLE)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(mediaReceiver, filter, RECEIVER_NOT_EXPORTED)
@@ -207,28 +222,44 @@ class MainActivity : FlutterActivity() {
             Intent(this, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        // 5-button layout: -10s | ◀ Prev | Play/Pause | Next ▶ | +10s
+        // 5-button layout: Mute | -10s | Play/Pause | +10s | Autoplay
+        // Compact view shows indices 1, 2, 3  →  -10s | Play/Pause | +10s
+        val muteIcon = if (mediaIsMuted)
+            android.R.drawable.ic_lock_silent_mode
+        else
+            android.R.drawable.ic_lock_silent_mode_off
+        val muteLabel = if (mediaIsMuted) "Unmute" else "Mute"
+        val autoIcon  = if (mediaAutoplay)
+            android.R.drawable.ic_media_next
+        else
+            android.R.drawable.ic_menu_close_clear_cancel
+        val autoLabel = if (mediaAutoplay) "Auto:ON" else "Auto:OFF"
+        val subtitle  = buildString {
+            append(if (mediaIsMuted) "🔇 Muted" else "🔊")
+            append("  ")
+            append(if (mediaAutoplay) "↻ Autoplay" else "⏹ No Autoplay")
+        }
         val b = NotificationCompat.Builder(this, MEDIA_NOTIF_CH)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(mediaTitle)
-            .setContentText("WebBuddy Browser")
+            .setContentText(subtitle)
             .setContentIntent(openPi)
             .setOngoing(mediaPlaying)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSilent(true)
             .setStyle(
                 MediaNotifCompat.MediaStyle()
-                    .setShowActionsInCompactView(1, 2, 3)  // show Prev, Play/Pause, Next in compact
+                    .setShowActionsInCompactView(1, 2, 3)  // -10s, Play/Pause, +10s in compact
             )
-        b.addAction(android.R.drawable.ic_media_rew,    "-10s",  pi(ACTION_SEEK_BACK))
-        b.addAction(android.R.drawable.ic_media_previous, "Prev", pi(ACTION_PREV))
+        b.addAction(muteIcon,                            muteLabel,  pi(ACTION_MUTE))
+        b.addAction(android.R.drawable.ic_media_rew,     "-10s",     pi(ACTION_SEEK_BACK))
         if (mediaPlaying) {
-            b.addAction(android.R.drawable.ic_media_pause, "Pause", pi(ACTION_PAUSE))
+            b.addAction(android.R.drawable.ic_media_pause, "Pause",  pi(ACTION_PAUSE))
         } else {
-            b.addAction(android.R.drawable.ic_media_play,  "Play",  pi(ACTION_PLAY))
+            b.addAction(android.R.drawable.ic_media_play,  "Play",   pi(ACTION_PLAY))
         }
-        b.addAction(android.R.drawable.ic_media_next,   "Next",  pi(ACTION_NEXT))
-        b.addAction(android.R.drawable.ic_media_ff,     "+10s",  pi(ACTION_SEEK_FWD))
+        b.addAction(android.R.drawable.ic_media_ff,      "+10s",     pi(ACTION_SEEK_FWD))
+        b.addAction(autoIcon,                             autoLabel,  pi(ACTION_AUTOPLAY_TOGGLE))
         if (mediaDuration > 0) {
             b.setProgress(mediaDuration, mediaPosition.coerceIn(0, mediaDuration), false)
         }

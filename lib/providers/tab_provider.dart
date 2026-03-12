@@ -18,6 +18,7 @@ class TabProvider extends ChangeNotifier {
   int _activeIndex = 0;
   String? _pendingLinkUrl;
   bool _findInPageActive = false;
+  bool _autoplayEnabled = true;
 
   List<BrowserTab> get tabs => List.unmodifiable(_tabs);
   int get activeIndex => _activeIndex;
@@ -25,6 +26,8 @@ class TabProvider extends ChangeNotifier {
   int get tabCount => _tabs.length;
   String? get pendingLinkUrl => _pendingLinkUrl;
   bool get findInPageActive => _findInPageActive;
+  bool get autoplayEnabled => _autoplayEnabled;
+  void setAutoplay(bool v) { _autoplayEnabled = v; }
   void clearPendingLinkUrl() {
     _pendingLinkUrl = null;
   }
