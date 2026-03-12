@@ -19,14 +19,37 @@ class _BrowserScreenState extends State<BrowserScreen> {
   bool _isFullScreen = false;
   bool _inPip = false;
 
-  // Listen for PiP state changes sent from native side
-  static const _pipChannel = EventChannel('com.webbuddy.webbuddy/pip_events');
+  static const _pipChannel       = EventChannel('com.webbuddy.webbuddy/pip_events');
+  static const _mediaCtrlChannel = EventChannel('com.webbuddy.webbuddy/media_controls');
 
   @override
   void initState() {
     super.initState();
     _pipChannel.receiveBroadcastStream().listen((event) {
       if (mounted) setState(() => _inPip = event == true);
+    }, onError: (_) {});
+
+    _mediaCtrlChannel.receiveBroadcastStream().listen((event) async {
+      if (!mounted) return;
+      final tab = context.read<TabProvider>().activeTab;
+      if (tab?.controller == null) return;
+      final cmd = event.toString();
+      if (cmd == 'play') {
+        await tab!.controller!.runJavaScript(
+          'document.querySelectorAll("video,audio").forEach(function(v){try{v.play();}catch(e){}});',
+        );
+      } else if (cmd == 'pause') {
+        await tab!.controller!.runJavaScript(
+          'document.querySelectorAll("video,audio").forEach(function(v){v.pause();});',
+        );
+      } else if (cmd == 'stop') {
+        await tab!.controller!.runJavaScript(
+          'document.querySelectorAll("video,audio").forEach(function(v){v.pause();v.currentTime=0;});',
+        );
+      } else if (cmd.startsWith('seek:')) {
+        final secs = int.tryParse(cmd.substring(5)) ?? 0;
+        await context.read<TabProvider>().seekActiveMedia(secs);
+      }
     }, onError: (_) {});
   }
 

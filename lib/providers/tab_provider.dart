@@ -77,6 +77,8 @@ class TabProvider extends ChangeNotifier {
             }
             // Inject media event hooks so notification bar controls work
             await tab.controller?.runJavaScript(_mediaHookJs);
+            // Inject long-press link → open in new tab
+            await tab.controller?.runJavaScript(_navHookJs);
             // Inject YouTube enhancements if on YouTube
             if (url.contains('youtube.com') || url.contains('youtu.be')) {
               await tab.controller?.runJavaScript(_youtubeEnhancementsJs);
@@ -109,6 +111,10 @@ class TabProvider extends ChangeNotifier {
       ..addJavaScriptChannel(
         'WebBuddyMedia',
         onMessageReceived: (msg) => _onMediaEvent(msg.message, tab),
+      )
+      ..addJavaScriptChannel(
+        'WebBuddyNav',
+        onMessageReceived: (msg) => _onNavEvent(msg.message),
       );
 
     tab.controller = controller;
@@ -188,6 +194,27 @@ class TabProvider extends ChangeNotifier {
   }
 
   bool get isDesktopMode => activeTab?.isDesktopMode ?? false;
+
+  // JavaScript: long-press any link → open in new tab
+  static const _navHookJs = '''
+(function() {
+  if (window._wbNavHooked) return;
+  window._wbNavHooked = true;
+  var _timer = null;
+  document.addEventListener('touchstart', function(e) {
+    var el = e.target;
+    while (el && el.tagName !== 'A') el = el.parentElement;
+    if (!el || !el.href) return;
+    var href = el.href;
+    _timer = setTimeout(function() {
+      _timer = null;
+      try { WebBuddyNav.postMessage(href); } catch(x) {}
+    }, 600);
+  }, {passive: true});
+  document.addEventListener('touchend',   function() { if (_timer) { clearTimeout(_timer); _timer = null; } }, {passive: true});
+  document.addEventListener('touchmove',  function() { if (_timer) { clearTimeout(_timer); _timer = null; } }, {passive: true});
+})();
+''';
 
   // JavaScript injected on every page load to detect media play/pause
   static const _mediaHookJs = '''
@@ -315,6 +342,21 @@ class TabProvider extends ChangeNotifier {
   }).observe(document.body || document.documentElement, {childList:true, subtree:true});
 })();
 ''';
+
+  void _onNavEvent(String url) {
+    if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
+      openNewTab(url: url);
+    }
+  }
+
+  Future<void> seekActiveMedia(int seconds) async {
+    final tab = activeTab;
+    if (tab == null) return;
+    await tab.controller?.runJavaScript(
+      '(function(){var v=document.querySelector("video,audio");'
+      'if(v){v.currentTime=Math.max(0,(v.currentTime||0)+($seconds));}})()',
+    );
+  }
 
   void _onMediaEvent(String message, BrowserTab tab) {
     try {

@@ -88,4 +88,10 @@ class PlatformService {
       await _channel.invokeMethod('dismissMediaNotification');
     } catch (_) {}
   }
+
+  static Future<void> seekMedia(int seconds) async {
+    try {
+      await _channel.invokeMethod('seekMedia', {'seconds': seconds});
+    } catch (_) {}
+  }
 }

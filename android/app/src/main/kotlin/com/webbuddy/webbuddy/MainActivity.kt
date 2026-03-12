@@ -24,9 +24,11 @@ class MainActivity : FlutterActivity() {
 
     private val MEDIA_NOTIF_ID  = 1001
     private val MEDIA_NOTIF_CH  = "webbuddy_media"
-    private val ACTION_PLAY     = "com.webbuddy.webbuddy.MEDIA_PLAY"
-    private val ACTION_PAUSE    = "com.webbuddy.webbuddy.MEDIA_PAUSE"
-    private val ACTION_STOP     = "com.webbuddy.webbuddy.MEDIA_STOP"
+    private val ACTION_PLAY      = "com.webbuddy.webbuddy.MEDIA_PLAY"
+    private val ACTION_PAUSE     = "com.webbuddy.webbuddy.MEDIA_PAUSE"
+    private val ACTION_STOP      = "com.webbuddy.webbuddy.MEDIA_STOP"
+    private val ACTION_SEEK_BACK  = "com.webbuddy.webbuddy.MEDIA_SEEK_BACK"
+    private val ACTION_SEEK_FWD   = "com.webbuddy.webbuddy.MEDIA_SEEK_FWD"
 
     private var pipEventSink: EventChannel.EventSink? = null
     private var mediaCtrlSink: EventChannel.EventSink? = null
@@ -47,9 +49,11 @@ class MainActivity : FlutterActivity() {
     private val mediaReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
             when (intent?.action) {
-                ACTION_PLAY  -> { mediaPlaying = true;  showMediaNotification(); mediaCtrlSink?.success("play")  }
-                ACTION_PAUSE -> { mediaPlaying = false; showMediaNotification(); mediaCtrlSink?.success("pause") }
-                ACTION_STOP  -> { mediaPlaying = false; dismissMediaNotification(); mediaCtrlSink?.success("stop") }
+                ACTION_PLAY      -> { mediaPlaying = true;  showMediaNotification(); mediaCtrlSink?.success("play")  }
+                ACTION_PAUSE     -> { mediaPlaying = false; showMediaNotification(); mediaCtrlSink?.success("pause") }
+                ACTION_STOP      -> { mediaPlaying = false; dismissMediaNotification(); mediaCtrlSink?.success("stop") }
+                ACTION_SEEK_BACK -> { mediaCtrlSink?.success("seek:-10") }
+                ACTION_SEEK_FWD  -> { mediaCtrlSink?.success("seek:10") }
             }
         }
     }
@@ -61,6 +65,7 @@ class MainActivity : FlutterActivity() {
 
         val filter = IntentFilter().apply {
             addAction(ACTION_PLAY); addAction(ACTION_PAUSE); addAction(ACTION_STOP)
+            addAction(ACTION_SEEK_BACK); addAction(ACTION_SEEK_FWD)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(mediaReceiver, filter, RECEIVER_NOT_EXPORTED)
@@ -102,6 +107,11 @@ class MainActivity : FlutterActivity() {
                     }
                     "dismissMediaNotification" -> {
                         dismissMediaNotification()
+                        result.success(true)
+                    }
+                    "seekMedia" -> {
+                        val secs = call.argument<Int>("seconds") ?: 0
+                        mediaCtrlSink?.success("seek:$secs")
                         result.success(true)
                     }
                     else -> result.notImplemented()
@@ -180,12 +190,14 @@ class MainActivity : FlutterActivity() {
             .setOngoing(mediaPlaying)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSilent(true)
+        b.addAction(android.R.drawable.ic_media_rew,                   "-10s",  pi(ACTION_SEEK_BACK))
         if (mediaPlaying) {
             b.addAction(android.R.drawable.ic_media_pause, "Pause", pi(ACTION_PAUSE))
         } else {
             b.addAction(android.R.drawable.ic_media_play,  "Play",  pi(ACTION_PLAY))
         }
-        b.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", pi(ACTION_STOP))
+        b.addAction(android.R.drawable.ic_media_ff,                    "+10s",  pi(ACTION_SEEK_FWD))
+        b.addAction(android.R.drawable.ic_menu_close_clear_cancel,     "Stop",  pi(ACTION_STOP))
         nm.notify(MEDIA_NOTIF_ID, b.build())
     }
 
