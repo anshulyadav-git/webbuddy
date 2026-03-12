@@ -62,8 +62,8 @@ class BrowserBottomBar extends StatelessWidget {
                         const SnackBar(
                           content: Text('Bookmark removed'),
                           duration: Duration(seconds: 2),
-                      ),
-                    );
+                        ),
+                      );
                     } else {
                       bookmarkProvider.add(tab.title, tab.url);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,9 +80,9 @@ class BrowserBottomBar extends StatelessWidget {
               Expanded(
                 child: _TabCountButton(
                   count: tabProvider.tabCount,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TabsScreen()),
-                  ),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const TabsScreen())),
                 ),
               ),
               Expanded(
@@ -230,104 +230,111 @@ class _BrowserMenu extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-            _MenuItem(
-              icon: Icons.add_rounded,
-              label: 'New Tab',
-              onTap: () {
-                Navigator.pop(context);
-                tabProvider.openNewTab();
-              },
-            ),
-            _MenuItem(
-              icon: Icons.privacy_tip_rounded,
-              label: 'New Private Tab',
-              onTap: () {
-                Navigator.pop(context);
-                tabProvider.openNewTab(incognito: true);
-              },
-            ),
-            const Divider(height: 1),
-            // ── External video player ──────────────────────────────────────
-            _MenuItem(
-              icon: Icons.play_circle_outline_rounded,
-              label: 'Play video externally',
-              onTap: () async {
-                Navigator.pop(context);
-                if (!hasPage) return;
-                final launched = await PlatformService.openInExternalPlayer(
-                  currentUrl,
-                );
-                if (!launched && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No external player found'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-            // ── Picture-in-Picture ─────────────────────────────────────────
-            _MenuItem(
-              icon: Icons.picture_in_picture_rounded,
-              label: 'Run in background (PiP)',
-              onTap: () async {
-                Navigator.pop(context);
-                final ok = await PlatformService.enterPip();
-                if (!ok && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('PiP not supported on this device'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-            // ── Desktop mode + Text size ───────────────────────────────────
-            _DesktopZoomTile(tabProvider: tabProvider, hasPage: hasPage),
-            // ── Add to home screen ─────────────────────────────────────────
-            _MenuItem(
-              icon: Icons.add_to_home_screen_rounded,
-              label: 'Add to home screen',
-              onTap: () async {
-                Navigator.pop(context);
-                if (!hasPage) return;
-                final title = tab?.title ?? currentUrl;
-                await PlatformService.addToHomeScreen(title, currentUrl);
-              },
-            ),
-            const Divider(height: 1),
-            _MenuItem(
-              icon: Icons.bookmark_border_rounded,
-              label: 'Bookmarks',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BookmarksScreen()),
-                );
-              },
-            ),
-            _MenuItem(
-              icon: Icons.history_rounded,
-              label: 'History',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                );
-              },
-            ),
-            _MenuItem(
-              icon: Icons.settings_rounded,
-              label: 'Settings',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                );
-              },
-            ),
+                  _MenuItem(
+                    icon: Icons.add_rounded,
+                    label: 'New Tab',
+                    onTap: () {
+                      Navigator.pop(context);
+                      tabProvider.openNewTab();
+                    },
+                  ),
+                  _MenuItem(
+                    icon: Icons.privacy_tip_rounded,
+                    label: 'New Private Tab',
+                    onTap: () {
+                      Navigator.pop(context);
+                      tabProvider.openNewTab(incognito: true);
+                    },
+                  ),
+                  const Divider(height: 1),
+                  // ── External video player ──────────────────────────────────────
+                  _MenuItem(
+                    icon: Icons.play_circle_outline_rounded,
+                    label: 'Play video externally',
+                    onTap: () async {
+                      Navigator.pop(context);
+                      if (!hasPage) return;
+                      final launched =
+                          await PlatformService.openInExternalPlayer(
+                            currentUrl,
+                          );
+                      if (!launched && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No external player found'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  // ── Picture-in-Picture ─────────────────────────────────────────
+                  _MenuItem(
+                    icon: Icons.picture_in_picture_rounded,
+                    label: 'Run in background (PiP)',
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final ok = await PlatformService.enterPip();
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('PiP not supported on this device'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  // ── Desktop mode + Text size ───────────────────────────────────
+                  _DesktopZoomTile(tabProvider: tabProvider, hasPage: hasPage),
+                  // ── Add to home screen ─────────────────────────────────────────
+                  _MenuItem(
+                    icon: Icons.add_to_home_screen_rounded,
+                    label: 'Add to home screen',
+                    onTap: () async {
+                      Navigator.pop(context);
+                      if (!hasPage) return;
+                      final title = tab?.title ?? currentUrl;
+                      await PlatformService.addToHomeScreen(title, currentUrl);
+                    },
+                  ),
+                  const Divider(height: 1),
+                  _MenuItem(
+                    icon: Icons.bookmark_border_rounded,
+                    label: 'Bookmarks',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const BookmarksScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _MenuItem(
+                    icon: Icons.history_rounded,
+                    label: 'History',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const HistoryScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _MenuItem(
+                    icon: Icons.settings_rounded,
+                    label: 'Settings',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

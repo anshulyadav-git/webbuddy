@@ -19,8 +19,10 @@ class _BrowserScreenState extends State<BrowserScreen> {
   bool _isFullScreen = false;
   bool _inPip = false;
 
-  static const _pipChannel       = EventChannel('com.webbuddy.webbuddy/pip_events');
-  static const _mediaCtrlChannel = EventChannel('com.webbuddy.webbuddy/media_controls');
+  static const _pipChannel = EventChannel('com.webbuddy.webbuddy/pip_events');
+  static const _mediaCtrlChannel = EventChannel(
+    'com.webbuddy.webbuddy/media_controls',
+  );
 
   @override
   void initState() {
@@ -51,6 +53,77 @@ class _BrowserScreenState extends State<BrowserScreen> {
         await context.read<TabProvider>().seekActiveMedia(secs);
       }
     }, onError: (_) {});
+  }
+
+  void _showLinkContextMenu(String url) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(
+                url,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded),
+              title: const Text('Open in New Tab'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.read<TabProvider>().openNewTab(url: url);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Open in Private Tab'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.read<TabProvider>().openNewTab(
+                  url: url,
+                  incognito: true,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.tab_unselected_rounded),
+              title: const Text('Open in Background'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.read<TabProvider>().openInBackground(url);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('Copy Link'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await Clipboard.setData(ClipboardData(text: url));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Link copied'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   void _toggleFullScreen() async {
@@ -85,6 +158,16 @@ class _BrowserScreenState extends State<BrowserScreen> {
     final tab = tabProvider.activeTab;
     final isIncognito = tab?.isIncognito ?? false;
     final topPad = MediaQuery.of(context).padding.top;
+
+    // Long-press link → show context menu
+    final pendingUrl = tabProvider.pendingLinkUrl;
+    if (pendingUrl != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<TabProvider>().clearPendingLinkUrl();
+        _showLinkContextMenu(pendingUrl);
+      });
+    }
 
     // Hide everything when in PiP – show only the WebView
     if (_inPip) {
@@ -170,6 +253,13 @@ class _BrowserScreenState extends State<BrowserScreen> {
                     onPressed: _toggleFullScreen,
                   ),
                 ),
+              ),
+            if (tabProvider.findInPageActive)
+              const Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _FindInPageBar(),
               ),
           ],
         ),
@@ -370,6 +460,87 @@ class _PrivacyStatsCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Find in Page overlay ───────────────────────────────────────────────────
+class _FindInPageBar extends StatefulWidget {
+  const _FindInPageBar();
+
+  @override
+  State<_FindInPageBar> createState() => _FindInPageBarState();
+}
+
+class _FindInPageBarState extends State<_FindInPageBar> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tabProvider = context.read<TabProvider>();
+    final theme = Theme.of(context);
+    return Material(
+      elevation: 8,
+      child: Container(
+        color: theme.colorScheme.surface,
+        padding: EdgeInsets.fromLTRB(
+          12,
+          6,
+          8,
+          6 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.search_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _ctrl,
+                autofocus: true,
+                style: theme.textTheme.bodyMedium,
+                decoration: const InputDecoration(
+                  hintText: 'Find in page...',
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: (q) => tabProvider.findInPage(q),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.keyboard_arrow_up_rounded),
+              onPressed: () => tabProvider.findInPagePrev(),
+              tooltip: 'Previous',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
+            IconButton(
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              onPressed: () => tabProvider.findInPageNext(),
+              tooltip: 'Next',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () => tabProvider.deactivateFindInPage(),
+              tooltip: 'Close',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -54,18 +54,41 @@ class AdBlocker {
   ];
 
   static const List<String> _adPathPatterns = [
-    '/ads/', '/ad/', '/advertisement/', '/banner/', '/popup/',
-    '/tracking/', '/tracker/', '/pixel.gif', '/beacon',
-    '/pagead/', '/adserving/', '/adclick', '/adiframe',
-    '/adlog', '/adpartner', '/adscript', '/adserver',
-    '/adsystem', '/advert', '/affiliate', '/clicktracking',
-    '/conversion_pixel', '/creativecdn', '/cgi-bin/ads',
-    '/sponsored', '/promo/', '/promos/',
+    '/ads/',
+    '/ad/',
+    '/advertisement/',
+    '/banner/',
+    '/popup/',
+    '/tracking/',
+    '/tracker/',
+    '/pixel.gif',
+    '/beacon',
+    '/pagead/',
+    '/adserving/',
+    '/adclick',
+    '/adiframe',
+    '/adlog',
+    '/adpartner',
+    '/adscript',
+    '/adserver',
+    '/adsystem',
+    '/advert',
+    '/affiliate',
+    '/clicktracking',
+    '/conversion_pixel',
+    '/creativecdn',
+    '/cgi-bin/ads',
+    '/sponsored',
+    '/promo/',
+    '/promos/',
   ];
 
   // YouTube ad video IDs served via redirects look like &ad_type= or &adformat=
   static const List<String> _ytAdQueryMarkers = [
-    'ad_type=', 'adformat=', '&oad=', 'ad_flags=',
+    'ad_type=',
+    'adformat=',
+    '&oad=',
+    'ad_flags=',
   ];
 
   static bool isAdUrl(String url) {
@@ -99,11 +122,33 @@ class AdBlocker {
     try {
       final uri = Uri.parse(url);
       const trackingParams = {
-        'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-        'fbclid', 'gclid', 'msclkid', '_ga', 'mc_eid', 'ref', 'source',
-        'campaign', 'yclid', 'igshid', 'dclid', 'zanpid', 'adgroupid',
-        'adposition', 'creative', 'device', 'matchtype', 'network',
-        'placement', 'target', 'loc_interest_ms', 'loc_physical_ms',
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'utm_term',
+        'utm_content',
+        'fbclid',
+        'gclid',
+        'msclkid',
+        '_ga',
+        'mc_eid',
+        'ref',
+        'source',
+        'campaign',
+        'yclid',
+        'igshid',
+        'dclid',
+        'zanpid',
+        'adgroupid',
+        'adposition',
+        'creative',
+        'device',
+        'matchtype',
+        'network',
+        'placement',
+        'target',
+        'loc_interest_ms',
+        'loc_physical_ms',
       };
       final cleaned = Map<String, String>.from(uri.queryParameters)
         ..removeWhere((k, _) => trackingParams.contains(k.toLowerCase()));

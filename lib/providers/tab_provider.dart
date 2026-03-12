@@ -16,11 +16,18 @@ class TabProvider extends ChangeNotifier {
 
   final List<BrowserTab> _tabs = [];
   int _activeIndex = 0;
+  String? _pendingLinkUrl;
+  bool _findInPageActive = false;
 
   List<BrowserTab> get tabs => List.unmodifiable(_tabs);
   int get activeIndex => _activeIndex;
   BrowserTab? get activeTab => _tabs.isEmpty ? null : _tabs[_activeIndex];
   int get tabCount => _tabs.length;
+  String? get pendingLinkUrl => _pendingLinkUrl;
+  bool get findInPageActive => _findInPageActive;
+  void clearPendingLinkUrl() {
+    _pendingLinkUrl = null;
+  }
 
   void openNewTab({String? url, bool incognito = false}) {
     final tab = BrowserTab(
@@ -344,8 +351,10 @@ class TabProvider extends ChangeNotifier {
 ''';
 
   void _onNavEvent(String url) {
-    if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
-      openNewTab(url: url);
+    if (url.isNotEmpty &&
+        (url.startsWith('http://') || url.startsWith('https://'))) {
+      _pendingLinkUrl = url;
+      notifyListeners();
     }
   }
 
@@ -407,6 +416,51 @@ class TabProvider extends ChangeNotifier {
     if (tab == null) return;
     tab.textSize = 100;
     await _applyZoom();
+  }
+
+  void activateFindInPage() {
+    _findInPageActive = true;
+    notifyListeners();
+  }
+
+  Future<void> deactivateFindInPage() async {
+    _findInPageActive = false;
+    await activeTab?.controller?.runJavaScript(
+      'if(window.getSelection){window.getSelection().removeAllRanges();}',
+    );
+    notifyListeners();
+  }
+
+  Future<void> findInPage(String query) async {
+    if (activeTab?.controller == null) return;
+    await activeTab!.controller!.runJavaScript(
+      'window._wbQ=${jsonEncode(query)};'
+      'if(window._wbQ)window.find(window._wbQ,false,false,true);',
+    );
+  }
+
+  Future<void> findInPageNext() async {
+    await activeTab?.controller?.runJavaScript(
+      'if(window._wbQ)window.find(window._wbQ,false,false,true);',
+    );
+  }
+
+  Future<void> findInPagePrev() async {
+    await activeTab?.controller?.runJavaScript(
+      'if(window._wbQ)window.find(window._wbQ,false,true,true);',
+    );
+  }
+
+  void openInBackground(String url, {bool incognito = false}) {
+    final tab = BrowserTab(
+      id: const Uuid().v4(),
+      url: url,
+      title: url,
+      isIncognito: incognito,
+    );
+    _tabs.add(tab);
+    _initController(tab);
+    notifyListeners();
   }
 
   void updateSettings() {

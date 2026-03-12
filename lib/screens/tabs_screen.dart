@@ -10,8 +10,8 @@ class TabsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final tabProvider = context.watch<TabProvider>();
     final allTabs = tabProvider.tabs;
-    final normal  = allTabs.where((t) => !t.isIncognito).toList();
-    final private = allTabs.where((t) =>  t.isIncognito).toList();
+    final normal = allTabs.where((t) => !t.isIncognito).toList();
+    final private = allTabs.where((t) => t.isIncognito).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -21,12 +21,18 @@ class TabsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add_rounded),
             tooltip: 'New Tab',
-            onPressed: () { tabProvider.openNewTab(); Navigator.pop(context); },
+            onPressed: () {
+              tabProvider.openNewTab();
+              Navigator.pop(context);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.privacy_tip_outlined),
             tooltip: 'New Private Tab',
-            onPressed: () { tabProvider.openNewTab(incognito: true); Navigator.pop(context); },
+            onPressed: () {
+              tabProvider.openNewTab(incognito: true);
+              Navigator.pop(context);
+            },
           ),
         ],
       ),
@@ -46,7 +52,10 @@ class TabsScreen extends StatelessWidget {
                         if (idx != -1) tabProvider.closeTab(idx);
                       }
                     },
-                    onNew: () { tabProvider.openNewTab(); Navigator.pop(context); },
+                    onNew: () {
+                      tabProvider.openNewTab();
+                      Navigator.pop(context);
+                    },
                   ),
                   _tabGrid(context, normal, tabProvider),
                 ],
@@ -62,7 +71,10 @@ class TabsScreen extends StatelessWidget {
                         if (idx != -1) tabProvider.closeTab(idx);
                       }
                     },
-                    onNew: () { tabProvider.openNewTab(incognito: true); Navigator.pop(context); },
+                    onNew: () {
+                      tabProvider.openNewTab(incognito: true);
+                      Navigator.pop(context);
+                    },
                   ),
                   _tabGrid(context, private, tabProvider, bottomPad: 24),
                 ],
@@ -86,19 +98,19 @@ class TabsScreen extends StatelessWidget {
           crossAxisSpacing: 12,
           childAspectRatio: 0.75,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) {
-            final tab = tabs[i];
-            final idx = tabProvider.tabs.indexOf(tab);
-            return _TabCard(
-              tab: tab,
-              isActive: idx == tabProvider.activeIndex,
-              onTap: () { tabProvider.switchTab(idx); Navigator.pop(context); },
-              onClose: () => tabProvider.closeTab(idx),
-            );
-          },
-          childCount: tabs.length,
-        ),
+        delegate: SliverChildBuilderDelegate((ctx, i) {
+          final tab = tabs[i];
+          final idx = tabProvider.tabs.indexOf(tab);
+          return _TabCard(
+            tab: tab,
+            isActive: idx == tabProvider.activeIndex,
+            onTap: () {
+              tabProvider.switchTab(idx);
+              Navigator.pop(context);
+            },
+            onClose: () => tabProvider.closeTab(idx),
+          );
+        }, childCount: tabs.length),
       ),
     );
   }
@@ -166,8 +178,15 @@ class _GroupHeader extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: onCloseAll,
-              icon: Icon(Icons.close_rounded, size: 16, color: theme.colorScheme.error),
-              label: Text('Close all', style: TextStyle(fontSize: 12, color: theme.colorScheme.error)),
+              icon: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: theme.colorScheme.error,
+              ),
+              label: Text(
+                'Close all',
+                style: TextStyle(fontSize: 12, color: theme.colorScheme.error),
+              ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 minimumSize: Size.zero,
@@ -208,7 +227,9 @@ class _TabCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isActive
-                ? (tab.isIncognito ? Colors.purpleAccent : theme.colorScheme.primary)
+                ? (tab.isIncognito
+                      ? Colors.purpleAccent
+                      : theme.colorScheme.primary)
                 : theme.dividerColor.withValues(alpha: 0.3),
             width: isActive ? 2 : 1,
           ),
@@ -221,19 +242,28 @@ class _TabCard extends StatelessWidget {
               child: Row(
                 children: [
                   if (tab.isIncognito)
-                    const Icon(Icons.privacy_tip, size: 14, color: Colors.purpleAccent)
+                    const Icon(
+                      Icons.privacy_tip,
+                      size: 14,
+                      color: Colors.purpleAccent,
+                    )
                   else if (tab.url.startsWith('https://'))
                     Icon(Icons.lock, size: 14, color: Colors.green.shade400)
                   else
-                    Icon(Icons.public, size: 14,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                    Icon(
+                      Icons.public,
+                      size: 14,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       tab.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   InkWell(
@@ -241,8 +271,13 @@ class _TabCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
-                      child: Icon(Icons.close, size: 16,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -258,16 +293,22 @@ class _TabCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: tab.isLoading
-                    ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            tab.url == 'about:blank' ? Icons.add_circle_outline : Icons.web,
+                            tab.url == 'about:blank'
+                                ? Icons.add_circle_outline
+                                : Icons.web,
                             size: 36,
                             color: tab.isIncognito
                                 ? Colors.purpleAccent.withValues(alpha: 0.5)
-                                : theme.colorScheme.primary.withValues(alpha: 0.5),
+                                : theme.colorScheme.primary.withValues(
+                                    alpha: 0.5,
+                                  ),
                           ),
                           const SizedBox(height: 8),
                           Padding(
@@ -278,7 +319,9 @@ class _TabCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                                 fontSize: 11,
                               ),
                             ),
