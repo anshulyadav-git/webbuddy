@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +11,7 @@ class SettingsProvider extends ChangeNotifier {
   String _searchEngine = 'DuckDuckGo';
   String _homepage = 'https://duckduckgo.com';
   bool _showImages = true;
+  List<Map<String, String>> _speedDials = [];
 
   bool get adBlockEnabled => _adBlockEnabled;
   bool get trackerBlockEnabled => _trackerBlockEnabled;
@@ -19,6 +21,7 @@ class SettingsProvider extends ChangeNotifier {
   String get searchEngine => _searchEngine;
   String get homepage => _homepage;
   bool get showImages => _showImages;
+  List<Map<String, String>> get speedDials => List.unmodifiable(_speedDials);
 
   static const String _searchEngines = 'DuckDuckGo,Google,Bing,Brave';
   List<String> get searchEngines => _searchEngines.split(',');
@@ -43,6 +46,13 @@ class SettingsProvider extends ChangeNotifier {
     _searchEngine = prefs.getString('searchEngine') ?? 'DuckDuckGo';
     _homepage = prefs.getString('homepage') ?? 'https://duckduckgo.com';
     _showImages = prefs.getBool('showImages') ?? true;
+    final raw = prefs.getString('speedDials');
+    if (raw != null) {
+      final decoded = jsonDecode(raw) as List;
+      _speedDials = decoded.cast<Map<String, dynamic>>().map(
+        (e) => e.map((k, v) => MapEntry(k, v.toString())),
+      ).toList();
+    }
     notifyListeners();
   }
 
@@ -56,6 +66,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString('searchEngine', _searchEngine);
     await prefs.setString('homepage', _homepage);
     await prefs.setBool('showImages', _showImages);
+    await prefs.setString('speedDials', jsonEncode(_speedDials));
   }
 
   void setAdBlock(bool value) {
@@ -102,6 +113,21 @@ class SettingsProvider extends ChangeNotifier {
 
   void setShowImages(bool value) {
     _showImages = value;
+    notifyListeners();
+    _save();
+  }
+
+  bool isSpeedDial(String url) => _speedDials.any((d) => d['url'] == url);
+
+  void addSpeedDial(String title, String url) {
+    if (isSpeedDial(url)) return;
+    _speedDials.add({'title': title, 'url': url});
+    notifyListeners();
+    _save();
+  }
+
+  void removeSpeedDial(String url) {
+    _speedDials.removeWhere((d) => d['url'] == url);
     notifyListeners();
     _save();
   }

@@ -94,6 +94,17 @@ class MainActivity : FlutterActivity() {
                         addShortcutToHomeScreen(title, url)
                         result.success(true)
                     }
+                    "shareUrl" -> {
+                        val title = call.argument<String>("title") ?: ""
+                        val url   = call.argument<String>("url")   ?: ""
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, title)
+                            putExtra(Intent.EXTRA_TEXT, url)
+                        }
+                        startActivity(Intent.createChooser(shareIntent, "Share via"))
+                        result.success(true)
+                    }
                     "showMediaNotification" -> {
                         mediaTitle   = call.argument<String>("title")   ?: "Playing media"
                         mediaPlaying = call.argument<Boolean>("playing") ?: true

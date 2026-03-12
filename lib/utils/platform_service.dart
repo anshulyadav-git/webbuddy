@@ -27,6 +27,13 @@ class PlatformService {
     }
   }
 
+  // ── Share URL via Android share sheet ───────────────────────────────────────
+  static Future<void> shareUrl(String title, String url) async {
+    try {
+      await _channel.invokeMethod('shareUrl', {'title': title, 'url': url});
+    } catch (_) {}
+  }
+
   // ── Open video URL in external player ─────────────────────────────────────
   static Future<bool> openInExternalPlayer(String url) async {
     final uri = Uri.parse(url);
