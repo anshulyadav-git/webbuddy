@@ -115,9 +115,7 @@ class _AddressBarState extends State<AddressBar> {
                       : Icons.bookmark_add_outlined,
                   color: isBookmarked ? theme.colorScheme.primary : null,
                 ),
-                title: Text(
-                  isBookmarked ? 'Remove Bookmark' : 'Add Bookmark',
-                ),
+                title: Text(isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'),
                 onTap: () async {
                   Navigator.pop(ctx);
                   if (isBookmarked) {
@@ -151,7 +149,9 @@ class _AddressBarState extends State<AddressBar> {
                   color: isSpeedDial ? theme.colorScheme.primary : null,
                 ),
                 title: Text(
-                  isSpeedDial ? 'Remove from Speed Dials' : 'Add to Speed Dials',
+                  isSpeedDial
+                      ? 'Remove from Speed Dials'
+                      : 'Add to Speed Dials',
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -181,8 +181,10 @@ class _AddressBarState extends State<AddressBar> {
                 title: const Text('Add to Home Screen'),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  final ok =
-                      await PlatformService.addToHomeScreen(tab.title, tab.url);
+                  final ok = await PlatformService.addToHomeScreen(
+                    tab.title,
+                    tab.url,
+                  );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -208,36 +210,37 @@ class _AddressBarState extends State<AddressBar> {
                 },
               ),
             // Open in Background
-            if (hasPage) ...([
-              ListTile(
-                leading: const Icon(Icons.open_in_browser_rounded),
-                title: const Text('Open in Background'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  tabProvider.openInBackground(tab.url);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Opened in background tab'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.privacy_tip_outlined),
-                title: const Text('Open Private in Background'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  tabProvider.openInBackground(tab.url, incognito: true);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Opened in private background tab'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-            ]),
+            if (hasPage)
+              ...([
+                ListTile(
+                  leading: const Icon(Icons.open_in_browser_rounded),
+                  title: const Text('Open in Background'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    tabProvider.openInBackground(tab.url);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Opened in background tab'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('Open Private in Background'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    tabProvider.openInBackground(tab.url, incognito: true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Opened in private background tab'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ]),
             const SizedBox(height: 8),
           ],
         ),

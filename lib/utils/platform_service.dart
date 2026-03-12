@@ -98,7 +98,9 @@ class PlatformService {
 
   // ── Update media playback progress ────────────────────────────────────
   static Future<void> updateMediaProgress(
-      int positionSec, int durationSec) async {
+    int positionSec,
+    int durationSec,
+  ) async {
     try {
       await _channel.invokeMethod('updateMediaProgress', {
         'position': positionSec,

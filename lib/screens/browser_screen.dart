@@ -331,14 +331,20 @@ class _NewTabPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF3B5BDB).withValues(alpha: 0.4),
+                            color: const Color(
+                              0xFF3B5BDB,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.language_rounded, color: Colors.white, size: 44),
+                    const Icon(
+                      Icons.language_rounded,
+                      color: Colors.white,
+                      size: 44,
+                    ),
                     Positioned(
                       bottom: 6,
                       right: 6,
@@ -350,7 +356,11 @@ class _NewTabPage extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.lock_rounded, color: Colors.white, size: 11),
+                        child: const Icon(
+                          Icons.lock_rounded,
+                          color: Colors.white,
+                          size: 11,
+                        ),
                       ),
                     ),
                   ],

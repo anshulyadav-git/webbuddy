@@ -49,9 +49,10 @@ class SettingsProvider extends ChangeNotifier {
     final raw = prefs.getString('speedDials');
     if (raw != null) {
       final decoded = jsonDecode(raw) as List;
-      _speedDials = decoded.cast<Map<String, dynamic>>().map(
-        (e) => e.map((k, v) => MapEntry(k, v.toString())),
-      ).toList();
+      _speedDials = decoded
+          .cast<Map<String, dynamic>>()
+          .map((e) => e.map((k, v) => MapEntry(k, v.toString())))
+          .toList();
     }
     notifyListeners();
   }
