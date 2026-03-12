@@ -193,7 +193,8 @@ class TabProvider extends ChangeNotifier {
   static const _mediaHookJs = '''
 (function() {
   function hook(el) {
-    if (el._wbHooked) return; el._wbHooked = true;
+    if (el._wbHooked) return;
+    el._wbHooked = true;
     el.addEventListener('play', function() {
       try { WebBuddyMedia.postMessage(JSON.stringify({e:'play',t:document.title})); } catch(x){}
     });
@@ -203,15 +204,29 @@ class TabProvider extends ChangeNotifier {
     el.addEventListener('ended', function() {
       try { WebBuddyMedia.postMessage(JSON.stringify({e:'ended'})); } catch(x){}
     });
+    // Already playing when hooked (e.g. YouTube autoplay) — fire immediately
+    if (!el.paused && !el.ended) {
+      try { WebBuddyMedia.postMessage(JSON.stringify({e:'play',t:document.title})); } catch(x){}
+    }
   }
-  (document.querySelectorAll('audio,video')||[]).forEach(hook);
-  new MutationObserver(function(ms){
-    ms.forEach(function(m){
-      m.addedNodes.forEach(function(n){
-        if(n.tagName==='VIDEO'||n.tagName==='AUDIO') hook(n);
+  function scan() {
+    (document.querySelectorAll('audio,video') || []).forEach(hook);
+  }
+  scan();
+  new MutationObserver(function(ms) {
+    ms.forEach(function(m) {
+      m.addedNodes.forEach(function(n) {
+        if (!n || n.nodeType !== 1) return;
+        // Direct match
+        if (n.tagName === 'VIDEO' || n.tagName === 'AUDIO') hook(n);
+        // Nested match — catches YouTube's <video> inside <div id="movie_player">
+        if (n.querySelectorAll) n.querySelectorAll('audio,video').forEach(hook);
       });
     });
-  }).observe(document.body||document.documentElement,{childList:true,subtree:true});
+  }).observe(document.body || document.documentElement, {childList: true, subtree: true});
+  // Fallback scan every 500ms for 15s — catches lazy-loaded players
+  var _t = 0;
+  var _iv = setInterval(function() { scan(); if (++_t >= 30) clearInterval(_iv); }, 500);
 })();
 ''';
 
