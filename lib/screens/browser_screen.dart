@@ -48,6 +48,10 @@ class _BrowserScreenState extends State<BrowserScreen> {
         await tab!.controller!.runJavaScript(
           'document.querySelectorAll("video,audio").forEach(function(v){v.pause();v.currentTime=0;});',
         );
+      } else if (cmd == 'prev') {
+        await context.read<TabProvider>().goBack();
+      } else if (cmd == 'next') {
+        await context.read<TabProvider>().goForward();
       } else if (cmd.startsWith('seek:')) {
         final secs = int.tryParse(cmd.substring(5)) ?? 0;
         await context.read<TabProvider>().seekActiveMedia(secs);
@@ -312,26 +316,51 @@ class _NewTabPage extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF5733), Color(0xFFFF8C00)],
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF3B5BDB), Color(0xFF7048E8)],
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF3B5BDB).withValues(alpha: 0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.shield,
-                    color: Colors.white,
-                    size: 40,
-                  ),
+                    const Icon(Icons.language_rounded, color: Colors.white, size: 44),
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF51CF66),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.lock_rounded, color: Colors.white, size: 11),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'WebBuddy',
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 4),

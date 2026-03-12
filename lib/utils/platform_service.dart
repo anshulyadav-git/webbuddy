@@ -96,6 +96,17 @@ class PlatformService {
     } catch (_) {}
   }
 
+  // ── Update media playback progress ────────────────────────────────────
+  static Future<void> updateMediaProgress(
+      int positionSec, int durationSec) async {
+    try {
+      await _channel.invokeMethod('updateMediaProgress', {
+        'position': positionSec,
+        'duration': durationSec,
+      });
+    } catch (_) {}
+  }
+
   static Future<void> seekMedia(int seconds) async {
     try {
       await _channel.invokeMethod('seekMedia', {'seconds': seconds});

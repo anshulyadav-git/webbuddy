@@ -207,6 +207,37 @@ class _AddressBarState extends State<AddressBar> {
                   tabProvider.activateFindInPage();
                 },
               ),
+            // Open in Background
+            if (hasPage) ...([
+              ListTile(
+                leading: const Icon(Icons.open_in_browser_rounded),
+                title: const Text('Open in Background'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  tabProvider.openInBackground(tab.url);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Opened in background tab'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('Open Private in Background'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  tabProvider.openInBackground(tab.url, incognito: true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Opened in private background tab'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            ]),
             const SizedBox(height: 8),
           ],
         ),

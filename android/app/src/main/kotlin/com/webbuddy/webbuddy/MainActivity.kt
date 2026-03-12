@@ -11,6 +11,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.util.Rational
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat as MediaNotifCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -29,11 +30,15 @@ class MainActivity : FlutterActivity() {
     private val ACTION_STOP      = "com.webbuddy.webbuddy.MEDIA_STOP"
     private val ACTION_SEEK_BACK  = "com.webbuddy.webbuddy.MEDIA_SEEK_BACK"
     private val ACTION_SEEK_FWD   = "com.webbuddy.webbuddy.MEDIA_SEEK_FWD"
+    private val ACTION_PREV       = "com.webbuddy.webbuddy.MEDIA_PREV"
+    private val ACTION_NEXT       = "com.webbuddy.webbuddy.MEDIA_NEXT"
 
     private var pipEventSink: EventChannel.EventSink? = null
     private var mediaCtrlSink: EventChannel.EventSink? = null
-    private var mediaTitle   = "WebBuddy"
-    private var mediaPlaying = false
+    private var mediaTitle    = "WebBuddy"
+    private var mediaPlaying  = false
+    private var mediaPosition = 0   // seconds
+    private var mediaDuration = 0   // seconds
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +59,8 @@ class MainActivity : FlutterActivity() {
                 ACTION_STOP      -> { mediaPlaying = false; dismissMediaNotification(); mediaCtrlSink?.success("stop") }
                 ACTION_SEEK_BACK -> { mediaCtrlSink?.success("seek:-10") }
                 ACTION_SEEK_FWD  -> { mediaCtrlSink?.success("seek:10") }
+                ACTION_PREV      -> { mediaCtrlSink?.success("prev") }
+                ACTION_NEXT      -> { mediaCtrlSink?.success("next") }
             }
         }
     }
@@ -66,6 +73,7 @@ class MainActivity : FlutterActivity() {
         val filter = IntentFilter().apply {
             addAction(ACTION_PLAY); addAction(ACTION_PAUSE); addAction(ACTION_STOP)
             addAction(ACTION_SEEK_BACK); addAction(ACTION_SEEK_FWD)
+            addAction(ACTION_PREV); addAction(ACTION_NEXT)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(mediaReceiver, filter, RECEIVER_NOT_EXPORTED)
@@ -113,6 +121,12 @@ class MainActivity : FlutterActivity() {
                     }
                     "updateMediaNotification" -> {
                         mediaPlaying = call.argument<Boolean>("playing") ?: true
+                        showMediaNotification()
+                        result.success(true)
+                    }
+                    "updateMediaProgress" -> {
+                        mediaPosition = call.argument<Int>("position") ?: 0
+                        mediaDuration = call.argument<Int>("duration") ?: 0
                         showMediaNotification()
                         result.success(true)
                     }
@@ -193,6 +207,7 @@ class MainActivity : FlutterActivity() {
             Intent(this, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // 5-button layout: -10s | ◀ Prev | Play/Pause | Next ▶ | +10s
         val b = NotificationCompat.Builder(this, MEDIA_NOTIF_CH)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(mediaTitle)
@@ -201,14 +216,22 @@ class MainActivity : FlutterActivity() {
             .setOngoing(mediaPlaying)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSilent(true)
-        b.addAction(android.R.drawable.ic_media_rew,                   "-10s",  pi(ACTION_SEEK_BACK))
+            .setStyle(
+                MediaNotifCompat.MediaStyle()
+                    .setShowActionsInCompactView(1, 2, 3)  // show Prev, Play/Pause, Next in compact
+            )
+        b.addAction(android.R.drawable.ic_media_rew,    "-10s",  pi(ACTION_SEEK_BACK))
+        b.addAction(android.R.drawable.ic_media_previous, "Prev", pi(ACTION_PREV))
         if (mediaPlaying) {
             b.addAction(android.R.drawable.ic_media_pause, "Pause", pi(ACTION_PAUSE))
         } else {
             b.addAction(android.R.drawable.ic_media_play,  "Play",  pi(ACTION_PLAY))
         }
-        b.addAction(android.R.drawable.ic_media_ff,                    "+10s",  pi(ACTION_SEEK_FWD))
-        b.addAction(android.R.drawable.ic_menu_close_clear_cancel,     "Stop",  pi(ACTION_STOP))
+        b.addAction(android.R.drawable.ic_media_next,   "Next",  pi(ACTION_NEXT))
+        b.addAction(android.R.drawable.ic_media_ff,     "+10s",  pi(ACTION_SEEK_FWD))
+        if (mediaDuration > 0) {
+            b.setProgress(mediaDuration, mediaPosition.coerceIn(0, mediaDuration), false)
+        }
         nm.notify(MEDIA_NOTIF_ID, b.build())
     }
 

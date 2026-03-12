@@ -238,6 +238,12 @@ class TabProvider extends ChangeNotifier {
     el.addEventListener('ended', function() {
       try { WebBuddyMedia.postMessage(JSON.stringify({e:'ended'})); } catch(x){}
     });
+    el.addEventListener('timeupdate', function() {
+      if (!el._wbTU || (Date.now() - el._wbTU) > 3000) {
+        el._wbTU = Date.now();
+        try { WebBuddyMedia.postMessage(JSON.stringify({e:'progress',pos:Math.floor(el.currentTime),dur:Math.floor(el.duration||0)})); } catch(x){}
+      }
+    });
     // Already playing when hooked (e.g. YouTube autoplay) — fire immediately
     if (!el.paused && !el.ended) {
       try { WebBuddyMedia.postMessage(JSON.stringify({e:'play',t:document.title})); } catch(x){}
@@ -381,6 +387,10 @@ class TabProvider extends ChangeNotifier {
           PlatformService.updateMediaNotification(playing: false);
         case 'ended':
           PlatformService.dismissMediaNotification();
+        case 'progress':
+          final pos = (data['pos'] as num?)?.toInt() ?? 0;
+          final dur = (data['dur'] as num?)?.toInt() ?? 0;
+          if (dur > 0) PlatformService.updateMediaProgress(pos, dur);
       }
     } catch (_) {}
   }
