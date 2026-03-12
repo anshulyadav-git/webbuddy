@@ -22,65 +22,70 @@ class BrowserBottomBar extends StatelessWidget {
         : false;
 
     return Container(
-      height: 56,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(
           top: BorderSide(color: theme.dividerColor.withValues(alpha: 0.3)),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavBtn(
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => tabProvider.goBack(),
-            tooltip: 'Back',
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 52,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavBtn(
+                icon: Icons.arrow_back_ios_new_rounded,
+                onTap: () => tabProvider.goBack(),
+                tooltip: 'Back',
+              ),
+              _NavBtn(
+                icon: Icons.arrow_forward_ios_rounded,
+                onTap: () => tabProvider.goForward(),
+                tooltip: 'Forward',
+              ),
+              _NavBtn(
+                icon: isBookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: isBookmarked ? theme.colorScheme.primary : null,
+                onTap: () {
+                  if (tab == null || tab.url == 'about:blank') return;
+                  if (isBookmarked) {
+                    bookmarkProvider.remove(tab.url);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Bookmark removed'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    bookmarkProvider.add(tab.title, tab.url);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Bookmark added'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                tooltip: isBookmarked ? 'Remove bookmark' : 'Add bookmark',
+              ),
+              _TabCountButton(
+                count: tabProvider.tabCount,
+                onTap: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const TabsScreen())),
+              ),
+              _NavBtn(
+                icon: Icons.more_vert_rounded,
+                onTap: () => _showMenu(context, tabProvider),
+                tooltip: 'More',
+              ),
+            ],
           ),
-          _NavBtn(
-            icon: Icons.arrow_forward_ios_rounded,
-            onTap: () => tabProvider.goForward(),
-            tooltip: 'Forward',
-          ),
-          _NavBtn(
-            icon: isBookmarked
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_border_rounded,
-            color: isBookmarked ? theme.colorScheme.primary : null,
-            onTap: () {
-              if (tab == null || tab.url == 'about:blank') return;
-              if (isBookmarked) {
-                bookmarkProvider.remove(tab.url);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Bookmark removed'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              } else {
-                bookmarkProvider.add(tab.title, tab.url);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Bookmark added'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            tooltip: isBookmarked ? 'Remove bookmark' : 'Add bookmark',
-          ),
-          _TabCountButton(
-            count: tabProvider.tabCount,
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const TabsScreen())),
-          ),
-          _NavBtn(
-            icon: Icons.more_vert_rounded,
-            onTap: () => _showMenu(context, tabProvider),
-            tooltip: 'More',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -179,6 +184,13 @@ class _BrowserMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use Consumer so zoom/desktop state changes rebuild the sheet live
+    return Consumer<TabProvider>(
+      builder: (context, tabProv, _) => _buildContent(context, tabProv),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, TabProvider tabProvider) {
     final theme = Theme.of(context);
     final tab = tabProvider.activeTab;
     final currentUrl = tab?.url ?? '';
@@ -253,6 +265,8 @@ class _BrowserMenu extends StatelessWidget {
                 }
               },
             ),
+            // ── Desktop mode + Text size ───────────────────────────────────
+            _DesktopZoomTile(tabProvider: tabProvider, hasPage: hasPage),
             // ── Add to home screen ─────────────────────────────────────────
             _MenuItem(
               icon: Icons.add_to_home_screen_rounded,
@@ -299,7 +313,7 @@ class _BrowserMenu extends StatelessWidget {
         ),
       ),
     );
-  }
+  } // end _buildContent
 }
 
 class _MenuItem extends StatelessWidget {
@@ -320,6 +334,99 @@ class _MenuItem extends StatelessWidget {
       title: Text(label),
       onTap: onTap,
       dense: true,
+    );
+  }
+}
+
+// ── Combined Desktop Mode toggle + text zoom row ───────────────────────────
+class _DesktopZoomTile extends StatelessWidget {
+  final TabProvider tabProvider;
+  final bool hasPage;
+
+  const _DesktopZoomTile({required this.tabProvider, required this.hasPage});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDesktop = tabProvider.isDesktopMode;
+    final zoom = tabProvider.textSize;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          // Desktop mode toggle
+          Icon(
+            Icons.desktop_windows_rounded,
+            size: 22,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('Desktop mode', style: theme.textTheme.bodyMedium),
+          ),
+          Switch(
+            value: isDesktop,
+            onChanged: hasPage
+                ? (_) async => tabProvider.toggleDesktopMode()
+                : null,
+          ),
+          const SizedBox(width: 8),
+          // Zoom out
+          _ZoomBtn(
+            icon: Icons.remove_rounded,
+            onTap: hasPage ? () async => tabProvider.zoomOut() : null,
+          ),
+          // Zoom level — tap to reset
+          GestureDetector(
+            onTap: hasPage ? () async => tabProvider.resetZoom() : null,
+            child: Container(
+              width: 52,
+              alignment: Alignment.center,
+              child: Text(
+                '$zoom%',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: zoom != 100
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+          // Zoom in
+          _ZoomBtn(
+            icon: Icons.add_rounded,
+            onTap: hasPage ? () async => tabProvider.zoomIn() : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoomBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const _ZoomBtn({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(
+          icon,
+          size: 20,
+          color: onTap != null
+              ? theme.colorScheme.onSurface
+              : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+        ),
+      ),
     );
   }
 }

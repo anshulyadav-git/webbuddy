@@ -61,4 +61,31 @@ class PlatformService {
     ];
     return videoExtensions.any((ext) => lower.contains(ext));
   }
+
+  // ── Media notification controls ────────────────────────────────────
+  static Future<void> showMediaNotification(
+    String title, {
+    bool playing = true,
+  }) async {
+    try {
+      await _channel.invokeMethod('showMediaNotification', {
+        'title': title,
+        'playing': playing,
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> updateMediaNotification({required bool playing}) async {
+    try {
+      await _channel.invokeMethod('updateMediaNotification', {
+        'playing': playing,
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> dismissMediaNotification() async {
+    try {
+      await _channel.invokeMethod('dismissMediaNotification');
+    } catch (_) {}
+  }
 }

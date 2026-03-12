@@ -61,6 +61,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
     context.watch<SettingsProvider>();
     final tab = tabProvider.activeTab;
     final isIncognito = tab?.isIncognito ?? false;
+    final topPad = MediaQuery.of(context).padding.top;
 
     // Hide everything when in PiP – show only the WebView
     if (_inPip) {
@@ -87,29 +88,38 @@ class _BrowserScreenState extends State<BrowserScreen> {
         appBar: _isFullScreen
             ? null
             : PreferredSize(
-                preferredSize: const Size.fromHeight(60),
+                preferredSize: Size.fromHeight(56 + topPad),
                 child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
-                    child: Row(
-                      children: [
-                        if (isIncognito)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: Icon(
-                              Icons.privacy_tip,
-                              color: Colors.purpleAccent,
-                              size: 22,
+                  bottom: false,
+                  child: SizedBox(
+                    height: 56,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+                      child: Row(
+                        children: [
+                          if (isIncognito)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Icon(
+                                Icons.privacy_tip,
+                                color: Colors.purpleAccent,
+                                size: 20,
+                              ),
+                            ),
+                          const Expanded(child: AddressBar()),
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: IconButton(
+                              icon: const Icon(Icons.fullscreen_rounded),
+                              tooltip: 'Full screen',
+                              onPressed: _toggleFullScreen,
+                              iconSize: 20,
+                              padding: EdgeInsets.zero,
                             ),
                           ),
-                        const Expanded(child: AddressBar()),
-                        IconButton(
-                          icon: const Icon(Icons.fullscreen_rounded),
-                          tooltip: 'Full screen',
-                          onPressed: _toggleFullScreen,
-                          iconSize: 22,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

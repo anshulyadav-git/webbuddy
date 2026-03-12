@@ -7,6 +7,8 @@ class BrowserTab {
   String? faviconUrl;
   bool isLoading;
   bool isIncognito;
+  bool isDesktopMode;
+  int textSize; // 50–200, default 100 = 100%
   double scrollPosition;
   WebViewController? controller;
 
@@ -17,6 +19,8 @@ class BrowserTab {
     this.faviconUrl,
     this.isLoading = false,
     this.isIncognito = false,
+    this.isDesktopMode = false,
+    this.textSize = 100,
     this.scrollPosition = 0.0,
     this.controller,
   });

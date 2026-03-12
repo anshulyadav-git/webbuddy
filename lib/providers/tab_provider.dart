@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../models/tab_model.dart';
 import '../utils/ad_blocker.dart';
+import '../utils/platform_service.dart';
 import 'history_provider.dart';
 import 'settings_provider.dart';
 
@@ -73,6 +75,8 @@ class TabProvider extends ChangeNotifier {
             if (!tab.isIncognito) {
               _historyProvider.add(tab.title, url);
             }
+            // Inject media event hooks so notification bar controls work
+            await tab.controller?.runJavaScript(_mediaHookJs);
             notifyListeners();
           },
           onNavigationRequest: (request) {
@@ -97,6 +101,10 @@ class TabProvider extends ChangeNotifier {
       )
       ..setUserAgent(
         'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      )
+      ..addJavaScriptChannel(
+        'WebBuddyMedia',
+        onMessageReceived: (msg) => _onMediaEvent(msg.message, tab),
       );
 
     tab.controller = controller;
@@ -156,6 +164,102 @@ class TabProvider extends ChangeNotifier {
 
   Future<bool> canGoForward() async {
     return await activeTab?.controller?.canGoForward() ?? false;
+  }
+
+  Future<void> toggleDesktopMode() async {
+    final tab = activeTab;
+    if (tab == null) return;
+    tab.isDesktopMode = !tab.isDesktopMode;
+    const desktopUA =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    const mobileUA =
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+    await tab.controller?.setUserAgent(
+      tab.isDesktopMode ? desktopUA : mobileUA,
+    );
+    await tab.controller?.reload();
+    notifyListeners();
+  }
+
+  bool get isDesktopMode => activeTab?.isDesktopMode ?? false;
+
+  // JavaScript injected on every page load to detect media play/pause
+  static const _mediaHookJs = '''
+(function() {
+  function hook(el) {
+    if (el._wbHooked) return; el._wbHooked = true;
+    el.addEventListener('play', function() {
+      try { WebBuddyMedia.postMessage(JSON.stringify({e:'play',t:document.title})); } catch(x){}
+    });
+    el.addEventListener('pause', function() {
+      try { WebBuddyMedia.postMessage(JSON.stringify({e:'pause'})); } catch(x){}
+    });
+    el.addEventListener('ended', function() {
+      try { WebBuddyMedia.postMessage(JSON.stringify({e:'ended'})); } catch(x){}
+    });
+  }
+  (document.querySelectorAll('audio,video')||[]).forEach(hook);
+  new MutationObserver(function(ms){
+    ms.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n.tagName==='VIDEO'||n.tagName==='AUDIO') hook(n);
+      });
+    });
+  }).observe(document.body||document.documentElement,{childList:true,subtree:true});
+})();
+''';
+
+  void _onMediaEvent(String message, BrowserTab tab) {
+    try {
+      final data = jsonDecode(message) as Map<String, dynamic>;
+      final event = data['e'] as String?;
+      final title = (data['t'] as String?)?.isNotEmpty == true
+          ? data['t'] as String
+          : tab.title;
+      switch (event) {
+        case 'play':
+          PlatformService.showMediaNotification(title, playing: true);
+        case 'pause':
+          PlatformService.updateMediaNotification(playing: false);
+        case 'ended':
+          PlatformService.dismissMediaNotification();
+      }
+    } catch (_) {}
+  }
+
+  int get textSize => activeTab?.textSize ?? 100;
+
+  Future<void> _applyZoom() async {
+    final tab = activeTab;
+    if (tab == null) return;
+    await tab.controller?.runJavaScript(
+      'document.body.style.zoom="${tab.textSize}%";'
+      'document.documentElement.style.zoom="${tab.textSize}%";',
+    );
+    notifyListeners();
+  }
+
+  Future<void> zoomIn() async {
+    final tab = activeTab;
+    if (tab == null) return;
+    if (tab.textSize < 200) tab.textSize = (tab.textSize + 10).clamp(50, 200);
+    await _applyZoom();
+  }
+
+  Future<void> zoomOut() async {
+    final tab = activeTab;
+    if (tab == null) return;
+    if (tab.textSize > 50) tab.textSize = (tab.textSize - 10).clamp(50, 200);
+    await _applyZoom();
+  }
+
+  Future<void> resetZoom() async {
+    final tab = activeTab;
+    if (tab == null) return;
+    tab.textSize = 100;
+    await _applyZoom();
   }
 
   void updateSettings() {
