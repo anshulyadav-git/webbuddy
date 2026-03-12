@@ -1,0 +1,64 @@
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class PlatformService {
+  static const _channel = MethodChannel('com.webbuddy.webbuddy/platform');
+
+  // ── Picture-in-Picture ─────────────────────────────────────────────────────
+  static Future<bool> enterPip() async {
+    try {
+      final result = await _channel.invokeMethod<bool>('enterPip');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Add shortcut to home screen ────────────────────────────────────────────
+  static Future<bool> addToHomeScreen(String title, String url) async {
+    try {
+      final result = await _channel.invokeMethod<bool>('addToHomeScreen', {
+        'title': title,
+        'url': url,
+      });
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Open video URL in external player ─────────────────────────────────────
+  static Future<bool> openInExternalPlayer(String url) async {
+    final uri = Uri.parse(url);
+    // First try forcing an external app chooser
+    if (await canLaunchUrl(uri)) {
+      return launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+    return false;
+  }
+
+  // ── Full-screen / immersive mode toggle ───────────────────────────────────
+  static Future<void> enterFullScreen() async {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  static Future<void> exitFullScreen() async {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  // ── Detect if a URL looks like a video resource ───────────────────────────
+  static bool isVideoUrl(String url) {
+    final lower = url.toLowerCase();
+    final videoExtensions = [
+      '.mp4',
+      '.mkv',
+      '.webm',
+      '.avi',
+      '.mov',
+      '.flv',
+      '.m4v',
+      '.3gp',
+    ];
+    return videoExtensions.any((ext) => lower.contains(ext));
+  }
+}
