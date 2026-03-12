@@ -206,25 +206,30 @@ class _BrowserMenu extends StatelessWidget {
     final currentUrl = tab?.url ?? '';
     final hasPage = currentUrl.isNotEmpty && currentUrl != 'about:blank';
 
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-            Container(
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.85,
+      child: Column(
+        children: [
+          // ── drag handle ────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Container(
               width: 40,
               height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: theme.dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
+          ),
+          // ── scrollable content ─────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(top: 4, bottom: bottomPad + 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
             _MenuItem(
               icon: Icons.add_rounded,
               label: 'New Tab',
@@ -323,9 +328,11 @@ class _BrowserMenu extends StatelessWidget {
                 );
               },
             ),
-          ],
-        ),
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   } // end _buildContent
