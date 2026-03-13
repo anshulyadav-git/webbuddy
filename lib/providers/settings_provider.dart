@@ -12,6 +12,7 @@ class SettingsProvider extends ChangeNotifier {
   String _homepage = 'https://duckduckgo.com';
   bool _showImages = true;
   List<Map<String, String>> _speedDials = [];
+  bool _privateSession = false;
 
   bool get adBlockEnabled => _adBlockEnabled;
   bool get trackerBlockEnabled => _trackerBlockEnabled;
@@ -22,6 +23,7 @@ class SettingsProvider extends ChangeNotifier {
   String get homepage => _homepage;
   bool get showImages => _showImages;
   List<Map<String, String>> get speedDials => List.unmodifiable(_speedDials);
+  bool get privateSession => _privateSession;
 
   static const String _searchEngines = 'DuckDuckGo,Google,Bing,Brave';
   List<String> get searchEngines => _searchEngines.split(',');
@@ -54,6 +56,7 @@ class SettingsProvider extends ChangeNotifier {
           .map((e) => e.map((k, v) => MapEntry(k, v.toString())))
           .toList();
     }
+    _privateSession = prefs.getBool('privateSession') ?? false;
     notifyListeners();
   }
 
@@ -68,6 +71,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString('homepage', _homepage);
     await prefs.setBool('showImages', _showImages);
     await prefs.setString('speedDials', jsonEncode(_speedDials));
+    await prefs.setBool('privateSession', _privateSession);
   }
 
   void setAdBlock(bool value) {
@@ -114,6 +118,12 @@ class SettingsProvider extends ChangeNotifier {
 
   void setShowImages(bool value) {
     _showImages = value;
+    notifyListeners();
+    _save();
+  }
+
+  void setPrivateSession(bool value) {
+    _privateSession = value;
     notifyListeners();
     _save();
   }

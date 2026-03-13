@@ -32,6 +32,13 @@ class TabProvider extends ChangeNotifier {
     _pendingLinkUrl = null;
   }
 
+  /// Called on startup after a Private Session — closes all tabs and opens a fresh one.
+  void resetAllTabs() {
+    _tabs.clear();
+    _activeIndex = 0;
+    openNewTab();
+  }
+
   void openNewTab({String? url, bool incognito = false}) {
     final tab = BrowserTab(
       id: const Uuid().v4(),

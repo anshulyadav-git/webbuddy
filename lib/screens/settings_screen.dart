@@ -18,6 +18,15 @@ class SettingsScreen extends StatelessWidget {
         children: [
           _SectionHeader('Privacy & Security'),
           SwitchListTile(
+            secondary: const Icon(Icons.security_outlined),
+            title: const Text('Private Session'),
+            subtitle: const Text(
+              'Browse normally this session — history & tabs are wiped on next app start',
+            ),
+            value: settings.privateSession,
+            onChanged: settings.setPrivateSession,
+          ),
+          SwitchListTile(
             secondary: const Icon(Icons.block),
             title: const Text('Ad Blocking'),
             subtitle: const Text('Block ads on visited websites'),

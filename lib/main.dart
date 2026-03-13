@@ -24,6 +24,9 @@ void main() async {
   final historyProvider = HistoryProvider();
   await historyProvider.init();
 
+  // Private Session: if it was active last run, wipe history on startup.
+  final wasPrivateSession = settingsProvider.privateSession;
+
   runApp(
     MultiProvider(
       providers: [
@@ -35,10 +38,20 @@ void main() async {
           SettingsProvider,
           TabProvider
         >(
-          create: (ctx) => TabProvider(
-            ctx.read<HistoryProvider>(),
-            ctx.read<SettingsProvider>(),
-          )..openNewTab(),
+          create: (ctx) {
+            final tp = TabProvider(
+              ctx.read<HistoryProvider>(),
+              ctx.read<SettingsProvider>(),
+            );
+            if (wasPrivateSession) {
+              // Clear history from previous session, then open fresh tab.
+              ctx.read<HistoryProvider>().clear();
+              tp.openNewTab();
+            } else {
+              tp.openNewTab();
+            }
+            return tp;
+          },
           update: (ctx, history, settings, previous) {
             previous?.updateSettings();
             return previous!;
