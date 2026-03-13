@@ -87,6 +87,15 @@ class BrowserBottomBar extends StatelessWidget {
               ),
               Expanded(
                 child: _NavBtn(
+                  icon: Icons.person,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                  tooltip: 'Profile',
+                ),
+              ),
+              Expanded(
+                child: _NavBtn(
                   icon: Icons.more_vert_rounded,
                   onTap: () => _showMenu(context, tabProvider),
                   tooltip: 'More',

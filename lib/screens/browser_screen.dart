@@ -6,6 +6,7 @@ import '../providers/tab_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/address_bar.dart';
 import '../widgets/browser_bottom_bar.dart';
+import '../widgets/browser_tab_bar.dart';
 import '../utils/platform_service.dart';
 
 class BrowserScreen extends StatefulWidget {
@@ -210,40 +211,47 @@ class _BrowserScreenState extends State<BrowserScreen> {
         appBar: _isFullScreen
             ? null
             : PreferredSize(
-                preferredSize: Size.fromHeight(56 + topPad),
-                child: SafeArea(
-                  bottom: false,
-                  child: SizedBox(
-                    height: 56,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-                      child: Row(
-                        children: [
-                          if (isIncognito)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: Icon(
-                                Icons.privacy_tip,
-                                color: Colors.purpleAccent,
-                                size: 20,
+                preferredSize: Size.fromHeight(104 + topPad),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SafeArea(
+                      bottom: false,
+                      child: SizedBox(
+                        height: 56,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+                          child: Row(
+                            children: [
+                              if (isIncognito)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: Icon(
+                                    Icons.privacy_tip,
+                                    color: Colors.purpleAccent,
+                                    size: 20,
+                                  ),
+                                ),
+                              const Expanded(child: AddressBar()),
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: IconButton(
+                                  icon: const Icon(Icons.fullscreen_rounded),
+                                  tooltip: 'Full screen',
+                                  onPressed: _toggleFullScreen,
+                                  iconSize: 20,
+                                  padding: EdgeInsets.zero,
+                                ),
                               ),
-                            ),
-                          const Expanded(child: AddressBar()),
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: IconButton(
-                              icon: const Icon(Icons.fullscreen_rounded),
-                              tooltip: 'Full screen',
-                              onPressed: _toggleFullScreen,
-                              iconSize: 20,
-                              padding: EdgeInsets.zero,
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                    // Add the tab bar
+                    BrowserTabBar(),
+                  ],
                 ),
               ),
         body: Stack(
