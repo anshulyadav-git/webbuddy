@@ -1,5 +1,6 @@
 package com.webbuddy.webbuddy
 
+import android.app.DownloadManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,7 +9,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.util.Rational
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat as MediaNotifCompat
@@ -148,6 +151,31 @@ class MainActivity : FlutterActivity() {
                     "dismissMediaNotification" -> {
                         dismissMediaNotification()
                         result.success(true)
+                    }
+                    "downloadFile" -> {
+                        val url      = call.argument<String>("url")      ?: ""
+                        val filename = call.argument<String>("filename")  ?: "download"
+                        val mime     = call.argument<String>("mime")      ?: "application/octet-stream"
+                        try {
+                            val req = DownloadManager.Request(Uri.parse(url)).apply {
+                                setTitle(filename)
+                                setDescription("Downloading via WebBuddy")
+                                setMimeType(mime)
+                                setNotificationVisibility(
+                                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                                )
+                                setDestinationInExternalPublicDir(
+                                    Environment.DIRECTORY_DOWNLOADS, filename
+                                )
+                                addRequestHeader("User-Agent",
+                                    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                            }
+                            val dm = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+                            dm.enqueue(req)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("DOWNLOAD_FAILED", e.message, null)
+                        }
                     }
                     "seekMedia" -> {
                         val secs = call.argument<Int>("seconds") ?: 0

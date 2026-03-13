@@ -6,6 +6,8 @@ import '../providers/tab_provider.dart';
 import '../providers/settings_provider.dart';
 import '../utils/platform_service.dart';
 import '../utils/url_utils.dart';
+import '../screens/protect_screen.dart';
+import 'protect_shield.dart';
 
 class AddressBar extends StatefulWidget {
   const AddressBar({super.key});
@@ -280,7 +282,16 @@ class _AddressBarState extends State<AddressBar> {
             Icon(Icons.lock, size: 16, color: Colors.green.shade400)
           else
             Icon(Icons.info_outline, size: 16, color: Colors.orange.shade400),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          // WebBuddy Protect shield
+          ProtectShield(
+            currentUrl: tab?.url,
+            onTap: () => ProtectScreen.show(
+              context,
+              currentUrl: tab?.url,
+            ),
+          ),
+          const SizedBox(width: 4),
           Expanded(
             child: TextField(
               controller: _controller,

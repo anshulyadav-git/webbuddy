@@ -5,6 +5,7 @@ import 'providers/settings_provider.dart';
 import 'providers/bookmark_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/tab_provider.dart';
+import 'providers/protect_provider.dart';
 import 'utils/app_theme.dart';
 import 'screens/browser_screen.dart';
 
@@ -24,6 +25,9 @@ void main() async {
   final historyProvider = HistoryProvider();
   await historyProvider.init();
 
+  final protectProvider = ProtectProvider();
+  await protectProvider.load();
+
   // Private Session: if it was active last run, wipe history on startup.
   final wasPrivateSession = settingsProvider.privateSession;
 
@@ -33,15 +37,18 @@ void main() async {
         ChangeNotifierProvider.value(value: settingsProvider),
         ChangeNotifierProvider.value(value: bookmarkProvider),
         ChangeNotifierProvider.value(value: historyProvider),
-        ChangeNotifierProxyProvider2<
+        ChangeNotifierProvider.value(value: protectProvider),
+        ChangeNotifierProxyProvider3<
           HistoryProvider,
           SettingsProvider,
+          ProtectProvider,
           TabProvider
         >(
           create: (ctx) {
             final tp = TabProvider(
               ctx.read<HistoryProvider>(),
               ctx.read<SettingsProvider>(),
+              ctx.read<ProtectProvider>(),
             );
             if (wasPrivateSession) {
               // Clear history from previous session, then open fresh tab.
@@ -52,7 +59,7 @@ void main() async {
             }
             return tp;
           },
-          update: (ctx, history, settings, previous) {
+          update: (ctx, history, settings, protect, previous) {
             previous?.updateSettings();
             return previous!;
           },

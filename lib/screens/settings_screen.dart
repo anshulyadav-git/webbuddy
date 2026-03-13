@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/history_provider.dart';
 import '../providers/bookmark_provider.dart';
+import '../providers/protect_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -10,12 +11,69 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final protect = context.watch<ProtectProvider>();
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _SectionHeader('WebBuddy Protect'),
+          // Fingerprint Defense toggle
+          SwitchListTile(
+            secondary: const Icon(Icons.fingerprint),
+            title: const Text('Fingerprint Defense'),
+            subtitle: const Text(
+              'Block canvas, WebGL, navigator and WebRTC fingerprinting',
+            ),
+            value: settings.fingerprintProtectionEnabled,
+            onChanged: settings.setFingerprintProtection,
+          ),
+          // Protection Level
+          ListTile(
+            leading: const Icon(Icons.shield_rounded),
+            title: const Text('Protection Level'),
+            subtitle: Text(_protectionLevelLabel(settings.protectionLevel)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showProtectionLevelPicker(context, settings),
+          ),
+          // Stats summary
+          ListTile(
+            leading: const Icon(Icons.bar_chart_rounded),
+            title: const Text('Block Statistics'),
+            subtitle: Text(
+              'Ads: ${protect.stats.adsBlocked}  '
+              'Trackers: ${protect.stats.trackersBlocked}  '
+              'FP: ${protect.stats.fingerprintsBlocked}  '
+              'HTTPS: ${protect.stats.httpsUpgrades}',
+            ),
+            trailing: TextButton(
+              onPressed: () {
+                protect.resetStats();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Stats reset')),
+                );
+              },
+              child: const Text('Reset'),
+            ),
+          ),
+          // Site exceptions
+          ListTile(
+            leading: const Icon(Icons.playlist_remove_rounded),
+            title: const Text('Clear Site Exceptions'),
+            subtitle: Text(
+              '${protect.exemptDomains.length} site(s) have protection disabled',
+            ),
+            onTap: protect.exemptDomains.isEmpty
+                ? null
+                : () {
+                    protect.clearExemptions();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Exceptions cleared')),
+                    );
+                  },
+          ),
+          const Divider(),
           _SectionHeader('Privacy & Security'),
           SwitchListTile(
             secondary: const Icon(Icons.security_outlined),
@@ -221,6 +279,41 @@ class SettingsScreen extends StatelessWidget {
               );
             },
             child: const Text('Clear', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _protectionLevelLabel(ProtectionLevel level) => switch (level) {
+        ProtectionLevel.basic => 'Basic — Ads + HTTPS only',
+        ProtectionLevel.standard => 'Standard (Recommended)',
+        ProtectionLevel.strict => 'Strict — All techniques',
+      };
+
+  void _showProtectionLevelPicker(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Protection Level'),
+        children: [
+          RadioGroup<ProtectionLevel>(
+            groupValue: settings.protectionLevel,
+            onChanged: (v) {
+              if (v != null) settings.setProtectionLevel(v);
+              Navigator.pop(ctx);
+            },
+            child: Column(
+              children: ProtectionLevel.values.map((level) {
+                return RadioListTile<ProtectionLevel>(
+                  value: level,
+                  title: Text(_protectionLevelLabel(level)),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),

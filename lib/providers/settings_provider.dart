@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Protection level for WebBuddy Protect.
+enum ProtectionLevel { basic, standard, strict }
+
 class SettingsProvider extends ChangeNotifier {
   bool _adBlockEnabled = true;
   bool _trackerBlockEnabled = true;
@@ -13,6 +16,8 @@ class SettingsProvider extends ChangeNotifier {
   bool _showImages = true;
   List<Map<String, String>> _speedDials = [];
   bool _privateSession = false;
+  bool _fingerprintProtectionEnabled = true;
+  ProtectionLevel _protectionLevel = ProtectionLevel.standard;
 
   bool get adBlockEnabled => _adBlockEnabled;
   bool get trackerBlockEnabled => _trackerBlockEnabled;
@@ -24,6 +29,8 @@ class SettingsProvider extends ChangeNotifier {
   bool get showImages => _showImages;
   List<Map<String, String>> get speedDials => List.unmodifiable(_speedDials);
   bool get privateSession => _privateSession;
+  bool get fingerprintProtectionEnabled => _fingerprintProtectionEnabled;
+  ProtectionLevel get protectionLevel => _protectionLevel;
 
   static const String _searchEngines = 'DuckDuckGo,Google,Bing,Brave';
   List<String> get searchEngines => _searchEngines.split(',');
@@ -57,6 +64,12 @@ class SettingsProvider extends ChangeNotifier {
           .toList();
     }
     _privateSession = prefs.getBool('privateSession') ?? false;
+    _fingerprintProtectionEnabled =
+        prefs.getBool('fingerprintProtection') ?? true;
+    final levelIndex =
+        prefs.getInt('protectionLevel') ?? ProtectionLevel.standard.index;
+    _protectionLevel = ProtectionLevel.values[
+        levelIndex.clamp(0, ProtectionLevel.values.length - 1)];
     notifyListeners();
   }
 
@@ -72,6 +85,8 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool('showImages', _showImages);
     await prefs.setString('speedDials', jsonEncode(_speedDials));
     await prefs.setBool('privateSession', _privateSession);
+    await prefs.setBool('fingerprintProtection', _fingerprintProtectionEnabled);
+    await prefs.setInt('protectionLevel', _protectionLevel.index);
   }
 
   void setAdBlock(bool value) {
@@ -124,6 +139,18 @@ class SettingsProvider extends ChangeNotifier {
 
   void setPrivateSession(bool value) {
     _privateSession = value;
+    notifyListeners();
+    _save();
+  }
+
+  void setFingerprintProtection(bool value) {
+    _fingerprintProtectionEnabled = value;
+    notifyListeners();
+    _save();
+  }
+
+  void setProtectionLevel(ProtectionLevel level) {
+    _protectionLevel = level;
     notifyListeners();
     _save();
   }

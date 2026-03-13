@@ -114,4 +114,24 @@ class PlatformService {
       await _channel.invokeMethod('seekMedia', {'seconds': seconds});
     } catch (_) {}
   }
+
+  // ── Download a file via Android DownloadManager ───────────────────────────
+  static Future<bool> downloadFile(String url, {String? filename}) async {
+    try {
+      // Derive a filename from the URL if not provided.
+      final name = filename ??
+          Uri.parse(url).pathSegments.lastWhere(
+                (s) => s.isNotEmpty,
+                orElse: () => 'download',
+              );
+      final result = await _channel.invokeMethod<bool>('downloadFile', {
+        'url': url,
+        'filename': name,
+        'mime': 'application/octet-stream',
+      });
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }

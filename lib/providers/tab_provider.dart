@@ -4,15 +4,22 @@ import 'package:uuid/uuid.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../models/tab_model.dart';
 import '../utils/ad_blocker.dart';
+import '../utils/fingerprint_protection.dart';
 import '../utils/platform_service.dart';
 import 'history_provider.dart';
+import 'protect_provider.dart';
 import 'settings_provider.dart';
 
 class TabProvider extends ChangeNotifier {
   final HistoryProvider _historyProvider;
   final SettingsProvider _settingsProvider;
+  final ProtectProvider _protectProvider;
 
-  TabProvider(this._historyProvider, this._settingsProvider);
+  TabProvider(
+    this._historyProvider,
+    this._settingsProvider,
+    this._protectProvider,
+  );
 
   final List<BrowserTab> _tabs = [];
   int _activeIndex = 0;
@@ -79,10 +86,23 @@ class TabProvider extends ChangeNotifier {
       )
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (url) {
+          onPageStarted: (url) async {
             tab.isLoading = true;
             tab.url = url;
             notifyListeners();
+            if (url == 'about:blank') return;
+            // Inject fingerprint protection JS if enabled and site not exempt
+            if (_settingsProvider.fingerprintProtectionEnabled &&
+                !_protectProvider.isExempt(url)) {
+              final level = _settingsProvider.protectionLevel;
+              await tab.controller
+                  ?.runJavaScript(FingerprintProtection.standardJs);
+              if (level == ProtectionLevel.strict) {
+                await tab.controller
+                    ?.runJavaScript(FingerprintProtection.strictJs);
+              }
+              _protectProvider.recordFingerprintBlock();
+            }
           },
           onPageFinished: (url) async {
             tab.isLoading = false;
@@ -103,13 +123,41 @@ class TabProvider extends ChangeNotifier {
             notifyListeners();
           },
           onNavigationRequest: (request) {
-            if (_settingsProvider.adBlockEnabled &&
-                AdBlocker.isAdUrl(request.url)) {
+            final url = request.url;
+
+            // ── Download detection ────────────────────────────────────────
+            if (_isDownloadUrl(url)) {
+              PlatformService.downloadFile(url);
               return NavigationDecision.prevent;
             }
+
+            // ── Block check (skip exempt sites) ──────────────────────────
+            if (!_protectProvider.isExempt(url)) {
+              final blockResult = AdBlocker.checkUrl(url);
+              if (blockResult != null) {
+                final isAdCategory = blockResult.reason == BlockReason.ad ||
+                    blockResult.reason == BlockReason.malware ||
+                    blockResult.reason == BlockReason.social;
+                final isTrackerCategory =
+                    blockResult.reason == BlockReason.tracker;
+
+                if (isAdCategory && _settingsProvider.adBlockEnabled) {
+                  _protectProvider.recordAdBlock();
+                  return NavigationDecision.prevent;
+                }
+                if (isTrackerCategory &&
+                    _settingsProvider.trackerBlockEnabled) {
+                  _protectProvider.recordTrackerBlock();
+                  return NavigationDecision.prevent;
+                }
+              }
+            }
+
+            // ── HTTPS upgrade ─────────────────────────────────────────────
             if (_settingsProvider.httpsUpgradeEnabled) {
-              final upgraded = AdBlocker.upgradeToHttps(request.url);
-              if (upgraded != request.url) {
+              final upgraded = AdBlocker.upgradeToHttps(url);
+              if (upgraded != url) {
+                _protectProvider.recordHttpsUpgrade();
                 tab.controller?.loadRequest(Uri.parse(upgraded));
                 return NavigationDecision.prevent;
               }
@@ -211,6 +259,22 @@ class TabProvider extends ChangeNotifier {
   }
 
   bool get isDesktopMode => activeTab?.isDesktopMode ?? false;
+
+  static bool _isDownloadUrl(String url) {
+    final lower = url.toLowerCase();
+    // Explicit download schemes / content-disposition hints
+    if (lower.startsWith('blob:') || lower.startsWith('data:')) return false;
+    const downloadExtensions = [
+      '.apk', '.xapk', '.apks',
+      '.zip', '.tar', '.gz', '.rar', '.7z',
+      '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+      '.mp3', '.wav', '.flac', '.ogg', '.aac',
+      '.mp4', '.mkv', '.avi', '.mov', '.webm',
+      '.exe', '.msi', '.dmg', '.pkg', '.deb', '.rpm',
+      '.iso', '.img',
+    ];
+    return downloadExtensions.any((ext) => lower.contains(ext));
+  }
 
   // JavaScript: long-press any link → open in new tab
   static const _navHookJs = '''
